@@ -5,20 +5,40 @@ import pytest
 from unittest.mock import patch
 
 from interface_tester import InterfaceTester
-from scenario.state import State
+import ops
+from scenario.state import Container, ExecOutput, State
 
 from charm import OathkeeperCharm
 
 
 @pytest.fixture
 def interface_tester(interface_tester: InterfaceTester):
-    OathkeeperCharm._is_cloud_service_running = True
-    with patch("charm.KubernetesServicePatch", lambda x, y: None):
+    with patch("charm.KubernetesServicePatch"):
         interface_tester.configure(
             charm_type=OathkeeperCharm,
             state_template=State(
                 leader=True,
                 config={"dev": True},
+                containers=[
+                    Container(
+                        name="oathkeeper",
+                        can_connect=True,
+                        layers={
+                            "foo": ops.pebble.Layer({
+                                "summary": "foo",
+                                "description": "bar",
+                                "services": {
+                                    "oathkeeper": {
+                                        "startup": "enabled",
+                                        "current": "active",
+                                        "name": "oathkeeper",
+                                    }
+                                },
+                                "checks": {},
+                            })
+                        },
+                    )
+                ],
             ),
         )
         yield interface_tester
